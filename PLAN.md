@@ -53,7 +53,7 @@ Ficheros:
 ## 3. Fases
 
 ### Fase 0 · Convención en la Plantilla ✔ hecha (2026-11-24)
-Plantilla 0.5.0, rama `contenido-json` (commit `26acf08`, subido; pendiente de fusionar con `main`). 74 pruebas en verde y `astro check` sin errores. Las páginas compiladas son idénticas byte a byte a las de la 0.4.0. Si un JSON no cumple su esquema, el build se para con el campo exacto («portada.json → hero.franjas.0: Máximo 16 caracteres»).
+Plantilla 0.5.0, en `main` (commit `26acf08`). 74 pruebas en verde y `astro check` sin errores. Las páginas compiladas son idénticas byte a byte a las de la 0.4.0. Si un JSON no cumple su esquema, el build se para con el campo exacto («portada.json → hero.franjas.0: Máximo 16 caracteres»).
 
 - Pasar `contenido.ts`, los datos editables de `negocio.ts` y `fotos.ts` a JSON en `src/contenido/`.
 - Esquemas Zod con etiquetas y límites.
