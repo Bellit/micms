@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-11-24T12:26:55.714Z",
+        "reason": "Claude: la vista previa imita el resultado de Google, que usa Arial; es intencionado"
+      }
+    ]
+  }
+}

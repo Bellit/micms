@@ -2,7 +2,7 @@
 
 Un panel sencillo para que el cliente cambie **textos, imágenes y SEO** de su web sin tocar el diseño. La web sigue siendo Astro estático: rápida, con las imágenes optimizadas al compilar y sin base de datos para el contenido.
 
-Repositorio: https://github.com/Bellit/micms. Se prueba primero en la **Plantilla Landing Reservas** (`D:\Proyectos DB\Plantilla Landing Reservas`), que ya tiene panel `/admin` con login en Cloudflare.
+Repositorio (público): https://github.com/Bellit/micms. Se prueba primero en la **Plantilla Landing Reservas**, que ya tiene panel `/admin` con login en Cloudflare.
 
 ---
 
@@ -61,8 +61,20 @@ Plantilla 0.5.0, en `main` (commit `26acf08`). 74 pruebas en verde y `astro chec
 - Validación en `astro build` y en `npm test`.
 - Resultado: la web se ve **exactamente igual**.
 
-### Fase 1 · Primera versión del gestor (`/admin/contenido`)
-- **Antes de nada:** la imagen para redes (`public/og.png`) y el favicon los genera hoy `npm run marca` a mano, con el titular de la portada y la foto `redes.jpg`. Si el cliente cambia esos textos o la foto desde el gestor, `og.png` se queda desfasada. Hay que generarla durante el build.
+### Fase 1 · Primera versión del gestor (`/admin/contenido`) ✔ hecha (2026-11-24, micms 0.1.0)
+Cómo se usa: [README.md](README.md). En la Plantilla (0.6.0) hay 14 pruebas de extremo a extremo con un Worker de verdad y un GitHub falso, y lo he probado a mano en el navegador, en ordenador y en móvil.
+
+Además de lo previsto:
+- `og.png` se regenera en cada build (`npm run build` = `node scripts/marca.mjs && astro build`).
+- Al cambiar una foto, el panel pide revisar su descripción.
+- Las fotos que el contenido deja de usar se borran del repositorio en el mismo commit.
+- `_micms/version.json` con el commit compilado: el panel sabe cuándo el cambio ya está en línea.
+
+**Distribución (decidido 2026-11-24):** `micms` es un repositorio **público** y cada web lo instala con una versión fija: `npm install github:Bellit/micms#v0.1.0`. Para actualizar una web, se cambia la etiqueta. Por eso aquí no puede haber nada privado: ni datos de clientes, ni claves, ni rutas del ordenador.
+
+Para trabajar en micms y probarlo en una web a la vez, en esa web: `npm install "micms@file:../Gestor Web"`. Antes de hacer commit, se vuelve a la etiqueta.
+
+Plan inicial:
 - Paquete reutilizable (integración de Astro) que añade las rutas del panel.
 - Lee los esquemas (`z.toJSONSchema()`) y genera un formulario por fichero: textos, textos largos, números, interruptores, listas (añadir, quitar, reordenar dentro de los límites).
 - Contadores de caracteres con el máximo del esquema.
@@ -72,6 +84,7 @@ Plantilla 0.5.0, en `main` (commit `26acf08`). 74 pruebas en verde y `astro chec
 - Estado de la publicación («Publicando…» → «Publicado»).
 
 ### Fase 2 · Seguridad al editar
+- Probar con un repositorio y un Cloudflare reales (token de grano fino + Workers Builds) y medir cuánto tarda en salir un cambio.
 - **Vista previa** antes de publicar: los cambios van a una rama `borrador` y Cloudflare genera una URL de prueba. «Publicar» la fusiona con `main`.
 - **Historial** con «Deshacer» (lista de commits del contenido).
 - **Clic para editar**: en la vista previa, cada texto lleva `data-campo="portada.hero.entradilla"`; al hacer clic se abre ese campo.
@@ -83,8 +96,8 @@ Plantilla 0.5.0, en `main` (commit `26acf08`). 74 pruebas en verde y `astro chec
 - Correo para ti cada vez que un cliente publica.
 
 ### Fase 4 · Llevarlo a otras webs
-- Aplicar la convención a Vallcar, CanovellesBC‑2 y las webs nuevas.
-- Ferretería Pino y el Restaurante no están hechas con Astro: habría que pasarlas a Astro antes.
+- Aplicar la convención a las demás webs Astro y a las nuevas.
+- Las webs que no están hechas con Astro habría que pasarlas a Astro antes.
 
 ---
 

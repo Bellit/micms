@@ -1,0 +1,135 @@
+---
+// Panel del gestor de contenido. Usa la plantilla del panel de la web (opción `layout` de la integración),
+// que recibe `title` y `actual="contenido"`. El formulario lo pinta src/cliente/panel.ts.
+import Layout from 'virtual:micms/layout';
+import { OPCIONES } from 'virtual:micms/config';
+
+export const prerender = false;
+---
+<Layout title="Contenido" actual="contenido">
+  <div id="micms" class="micms" data-api={`${OPCIONES.ruta}/api`}>
+    <p class="micms-cargando">Cargando el contenido…</p>
+    <noscript><p class="micms-aviso err">El gestor de contenido necesita JavaScript.</p></noscript>
+  </div>
+</Layout>
+
+<script>
+  import { iniciar } from '../cliente/panel';
+  const raiz = document.getElementById('micms');
+  if (raiz) iniciar(raiz);
+</script>
+
+<style is:global>
+  /* Colores de la web si los define (variables de la Plantilla) y, si no, neutros. */
+  .micms {
+    --m-tinta: var(--tinta, #1d1d1f);
+    --m-tinta-2: var(--tinta-2, #55555a);
+    --m-fondo: var(--papel, #fff);
+    --m-fondo-2: var(--fondo-2, #f2f2f4);
+    --m-linea: var(--linea, #d6d6db);
+    --m-acento: var(--acento, #cdeb6e);
+    --m-error: var(--err, #b3261e);
+    --m-ok: #1e6b3a;
+    padding-bottom: 96px;
+    min-width: 0; /* dentro de una rejilla, que los resúmenes de una línea no ensanchen la página en el móvil */
+  }
+  .micms-seccion, .micms-tarjeta, .micms-tarjeta > summary { min-width: 0; }
+  .micms h1 { margin: 0 0 8px; font-size: 1.6rem; }
+  .micms-cabecera { margin-bottom: 16px; }
+  .micms-cargando { color: var(--m-tinta-2); }
+  .micms-ayuda summary { cursor: pointer; color: var(--m-tinta-2); }
+  .micms-ayuda ul { margin: 8px 0 0; padding-left: 20px; line-height: 1.6; }
+  .micms code { background: var(--m-fondo-2); padding: 1px 5px; border-radius: 4px; }
+
+  .micms-aviso { padding: 12px 14px; border-radius: 8px; border: 1.5px solid var(--m-linea); background: var(--m-fondo); }
+  .micms-aviso.err { border-color: var(--m-error); color: var(--m-error); }
+  .micms-aviso.ok { border-color: var(--m-ok); color: var(--m-ok); }
+  .micms-aviso a { color: inherit; font-weight: 700; }
+
+  .micms-pestanas { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 12px; }
+  .micms-pestanas button {
+    min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--m-tinta);
+    background: var(--m-fondo); color: var(--m-tinta); font: inherit; cursor: pointer;
+  }
+  .micms-pestanas button[aria-selected='true'] { background: var(--m-tinta); color: var(--m-fondo); }
+  .micms-num {
+    display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 8px; padding: 0 5px;
+    border-radius: 999px; background: var(--m-error); color: #fff; font-size: 0.75rem; font-weight: 700;
+  }
+
+  .micms-seccion { border: 1.5px solid var(--m-linea); border-radius: 10px; background: var(--m-fondo); margin-bottom: 10px; }
+  .micms-seccion > summary { padding: 14px 16px; font-weight: 700; cursor: pointer; min-height: 44px; }
+  .micms-seccion[open] > summary { border-bottom: 1.5px solid var(--m-linea); }
+  .micms-seccion > :not(summary) { margin-inline: 16px; }
+  .micms-seccion > :last-child { margin-bottom: 16px; }
+
+  .micms-grupo { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }
+  fieldset.micms-grupo { border-top: 1.5px solid var(--m-linea); padding-top: 12px; }
+  .micms-grupo legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+
+  .micms-campo, .micms-lista, .micms-anulable { margin-top: 16px; min-width: 0; }
+  .micms-etiqueta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .micms-etiqueta label, .micms-etiqueta span:first-child { font-weight: 600; }
+  .micms-ayuda-campo { margin: 2px 0 6px; font-size: 0.875rem; color: var(--m-tinta-2); }
+  .micms-contador { font-size: 0.8rem; color: var(--m-tinta-2); font-variant-numeric: tabular-nums; }
+  .micms-contador.lleno { color: var(--m-error); font-weight: 700; }
+  .micms input[type='text'], .micms input[type='email'], .micms input[type='url'], .micms input[type='tel'],
+  .micms input[type='number'], .micms textarea {
+    width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px 12px; min-height: 44px;
+    border: 1.5px solid var(--m-linea); border-radius: 8px; background: var(--m-fondo); color: var(--m-tinta); font: inherit;
+  }
+  .micms textarea { resize: vertical; line-height: 1.5; overflow: hidden; }
+  .micms input:focus-visible, .micms textarea:focus-visible, .micms button:focus-visible, .micms summary:focus-visible, .micms label.micms-btn:focus-within {
+    outline: 3px solid var(--m-tinta); outline-offset: 2px;
+  }
+  .micms-numero { max-width: 180px; }
+  .micms-check { display: flex; gap: 10px; align-items: center; min-height: 44px; font-weight: 600; cursor: pointer; }
+  .micms-check input { width: 20px; height: 20px; }
+  .micms-previa { margin: 6px 0 0; font-size: 1.1rem; }
+  .micms-mark { text-decoration: underline; text-decoration-color: var(--m-acento); text-decoration-thickness: 0.3em; text-underline-offset: -0.1em; text-decoration-skip-ink: none; }
+  .micms-pill { background: var(--m-acento); padding: 0 8px; border-radius: 999px; }
+  .micms-revisar { margin: 4px 0; padding: 6px 10px; border-radius: 6px; background: var(--m-acento); color: var(--m-tinta); font-weight: 600; font-size: 0.875rem; }
+  .micms-error { margin: 6px 0 0; color: var(--m-error); font-weight: 600; font-size: 0.9rem; }
+
+  .micms-cuenta { margin: 0 0 6px; font-size: 0.85rem; color: var(--m-tinta-2); }
+  .micms-titulo-lista { font-weight: 600; }
+  .micms-fila { display: flex; gap: 8px; align-items: flex-end; }
+  .micms-fila > .micms-campo { flex: 1; margin-top: 8px; }
+  .micms-tarjeta { border: 1.5px solid var(--m-linea); border-radius: 8px; margin-top: 8px; background: var(--m-fondo); }
+  .micms-tarjeta > summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; cursor: pointer; }
+  .micms-tarjeta > .micms-grupo { margin: 0 12px 14px; }
+  .micms-resumen { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .micms-controles { display: flex; gap: 6px; flex-shrink: 0; }
+  .micms-mini {
+    width: 44px; height: 44px; border-radius: 8px; border: 1.5px solid var(--m-linea); background: var(--m-fondo);
+    color: var(--m-tinta); font: inherit; cursor: pointer;
+  }
+  .micms-mini.quitar:not(:disabled):hover { border-color: var(--m-error); color: var(--m-error); }
+  .micms button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .micms-btn {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px;
+    border-radius: 999px; border: 1.5px solid var(--m-tinta); font: inherit; font-weight: 700; cursor: pointer;
+    background: var(--m-fondo); color: var(--m-tinta); margin-top: 10px;
+  }
+  .micms-btn.principal { background: var(--m-tinta); color: var(--m-fondo); }
+
+  .micms-foto-fila { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .micms-miniatura { width: 140px; max-height: 180px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--m-linea); background: var(--m-fondo-2); }
+  .micms-miniatura.vacia { display: grid; place-items: center; height: 100px; color: var(--m-tinta-2); }
+  .micms-oculto { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+  .micms-google { border: 1.5px solid var(--m-linea); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; background: var(--m-fondo); }
+  .micms-g-etiqueta { margin: 0 0 8px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--m-tinta-2); }
+  .micms-g-url { margin: 0; font-size: 0.85rem; color: #4d5156; }
+  .micms-g-titulo { margin: 2px 0; font-family: Arial, sans-serif; font-size: 1.25rem; color: #1a0dab; }
+  .micms-g-desc { margin: 0 0 6px; font-family: Arial, sans-serif; font-size: 0.9rem; color: #4d5156; line-height: 1.45; }
+
+  .micms-barra {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; gap: 12px; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; padding: 10px max(16px, calc((100vw - 900px) / 2));
+    padding-bottom: max(10px, env(safe-area-inset-bottom)); background: var(--m-fondo); border-top: 1.5px solid var(--m-tinta);
+  }
+  .micms-barra .micms-btn { margin-top: 0; }
+  .micms-estado { margin: 0; font-weight: 600; }
+</style>
