@@ -2,6 +2,23 @@
 
 Cada web instala una versión fija (`github:Bellit/micms#vX.Y.Z`). Al subir de versión, mira los apartados **«Al actualizar»**.
 
+## 0.3.0 · Pestaña «Instalación»
+
+- Nueva pestaña **«Instalación»** en el panel. Comprueba en el momento:
+  - los secretos, sin mostrar su valor;
+  - la conexión con GitHub, la rama y la caducidad del token (avisa 30 días antes);
+  - que cada JSON esté en el repositorio y cumpla su esquema;
+  - que no falten fotos;
+  - que la web publicada sea la del último commit.
+  
+  Si algo falla, dice cómo arreglarlo. También muestra la configuración, los requisitos y el prompt para adaptar otra web, con un botón para copiarlo. El prompt se lee de PROMPT-ADAPTAR.md, así que no hay dos copias.
+- Si el contenido no carga, el aviso tiene un botón «Comprobar la instalación».
+- API: `GET <ruta>/api/diagnostico`. Funciona aunque falte la configuración de GitHub y exige sesión.
+- El paquete incluye README, COMPATIBILIDAD, PROMPT-ADAPTAR y CHANGELOG.
+- `ejemplo/`: 36 comprobaciones.
+
+**Al actualizar:** nada.
+
 ## 0.2.0 · Para cualquier web Astro
 
 Auditoría de lo que ataba micms a la Plantilla Landing Reservas y a Cloudflare.

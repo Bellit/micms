@@ -81,7 +81,7 @@ PASO 5 · LAS PÁGINAS LEEN Y VALIDAN EL CONTENIDO
  - Cero textos editables escritos a mano en .astro, .ts o componentes.
 
 PASO 6 · MICMS
- - npm install github:Bellit/micms#v0.2.0
+ - npm install github:Bellit/micms#v0.3.0
  - Si no hay adaptador de servidor, añade el que corresponda a donde se publica (recomendado:
    @astrojs/cloudflare). Las páginas tienen que seguir siendo estáticas (no cambies output ni añadas
    prerender = false a las páginas de la web).

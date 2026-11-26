@@ -46,6 +46,17 @@ async function gh(ruta: string, init: RequestInit & { crudo?: boolean } = {}) {
 
 const json = async <T>(r: Promise<Response>) => (await (await r).json()) as T;
 
+/** Lo que hay configurado (sin el valor del token). */
+export const ajustes = () => ({ repo: E.GITHUB_REPO ?? null, rama: rama(), token: Boolean(E.GITHUB_TOKEN), apiPropia: Boolean(E.GITHUB_API) });
+
+/** Último commit de la rama y, si GitHub lo dice, cuándo caduca el token («2027-01-31 00:00:00 UTC»). */
+export async function infoRama() {
+  const r = await gh(`/git/ref/heads/${rama()}`);
+  const caduca = r.headers.get('github-authentication-token-expiration');
+  const { object } = (await r.json()) as { object: { sha: string } };
+  return { commit: object.sha, caduca };
+}
+
 /** Último commit de la rama. */
 export const ultimoCommit = async () => (await json<{ object: { sha: string } }>(gh(`/git/ref/heads/${rama()}`))).object.sha;
 

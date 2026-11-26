@@ -86,6 +86,8 @@ Plan inicial:
 ### Fase 1b · Para cualquier web Astro ✔ hecha (2026-11-26, micms 0.2.0)
 Auditoría de portabilidad: cualquier adaptador (`astro:env/server`), login propio con `MICMS_CLAVE`, página propia sin layout, `base` y `trailingSlash`, errores claros al compilar y desplegable para `z.enum`. Requisitos en [COMPATIBILIDAD.md](COMPATIBILIDAD.md), prompt para adaptar una web en [PROMPT-ADAPTAR.md](PROMPT-ADAPTAR.md) y web de ejemplo en `ejemplo/` con 27 comprobaciones de extremo a extremo. La Plantilla pasa sus 88 pruebas con `acceso: 'web'`.
 
+**micms 0.3.0 (2026-11-26):** pestaña «Instalación» en el panel: diagnóstico en el momento (secretos, GitHub, caducidad del token, contenido, fotos, publicación automática), configuración, requisitos y el prompt para adaptar otra web con botón de copiar. 36 comprobaciones en `ejemplo/`.
+
 ### Fase 2 · Seguridad al editar
 - Probar con un repositorio y un Cloudflare reales (token de grano fino + Workers Builds) y medir cuánto tarda en salir un cambio.
 - **Vista previa** antes de publicar: los cambios van a una rama `borrador` y Cloudflare genera una URL de prueba. «Publicar» la fusiona con `main`.

@@ -37,7 +37,7 @@ Lo demás sale del propio esquema: `max` → contador y límite, `min`/`max` de 
 ## Instalación
 
 ```bash
-npm install github:Bellit/micms#v0.2.0
+npm install github:Bellit/micms#v0.3.0
 ```
 
 ```js
@@ -59,6 +59,16 @@ export default defineConfig({
 | `marcadores` | `<carpeta>/marcadores.ts` si existe | Módulo que exporta `MARCADORES` |
 
 Si la web ya tiene un panel con login (como la Plantilla Landing Reservas): `micms({ acceso: 'web', layout: 'src/layouts/Admin.astro' })`, la pestaña «Contenido» en el menú del panel y, en Cloudflare, `run_worker_first` con `/admin/*`.
+
+### Pestaña «Instalación»
+
+En el propio panel, junto a las pestañas del contenido. Comprueba en el momento:
+- si están los secretos (sin mostrar su valor);
+- si GitHub acepta el token, si existe la rama y cuándo caduca el token;
+- si cada JSON está en el repositorio y cumple su esquema, y si falta alguna foto;
+- si la web publicada sale del último commit (publicación automática).
+
+Si algo falla, dice cómo arreglarlo. También muestra la configuración, los requisitos de la web y el prompt de [PROMPT-ADAPTAR.md](PROMPT-ADAPTAR.md) con un botón para copiarlo. Si el contenido no llega a cargar (por ejemplo, porque falta el token), el aviso de error tiene un botón «Comprobar la instalación».
 
 ### Acceso (login propio)
 
@@ -85,6 +95,7 @@ Para saber cuándo un cambio ya está en línea, la compilación escribe `/_micm
 | `GET <ruta>` | El panel (`src/paginas/panel.astro` + `src/cliente/panel.ts`) |
 | `GET <ruta>/api/estado` | Último commit, esquemas en JSON (`z.toJSONSchema`), datos de cada fichero y fotos que hay |
 | `GET <ruta>/api/imagen?archivo=&ref=` | Una foto del repositorio, para verla en el panel |
+| `GET <ruta>/api/diagnostico` | Estado de la instalación (pestaña «Instalación»). Funciona aunque falte GitHub |
 | `POST <ruta>/api/publicar` | `{ base, ficheros, fotos }` → valida y hace un solo commit (API de Git de GitHub: blobs, tree, commit y avance de la rama sin forzar) |
 | `POST <ruta>/api/entrar` · `salir` | Login propio (formulario; lo protege la comprobación de origen de Astro) |
 
@@ -101,5 +112,5 @@ Zod y los esquemas se cargan desde la web mediante un módulo virtual (`virtual:
 ## Pruebas
 
 - `npm test`: lectura de esquemas.
-- `cd ejemplo && npm install && npm test`: compila la web de ejemplo (adaptador Node, `base` y barra final), arranca el servidor con un GitHub falso y prueba de extremo a extremo el login, la seguridad, la lectura, la validación, la publicación, los conflictos y las fotos (27 comprobaciones).
+- `cd ejemplo && npm install && npm test`: compila la web de ejemplo (adaptador Node, `base` y barra final), arranca el servidor con un GitHub falso y prueba de extremo a extremo el login, la seguridad, la lectura, la validación, la publicación, los conflictos y las fotos (36 comprobaciones, con la pestaña «Instalación»).
 - `micms/pruebas` exporta `githubFalso()`, un servidor que imita la API de GitHub que usa micms. La Plantilla lo usa en `tests/contenido.test.mjs` para probar el panel y la API con un Worker de verdad: acceso, lectura, publicar, validación, conflictos y fotos.

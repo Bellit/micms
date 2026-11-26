@@ -84,7 +84,7 @@ Marcadores opcionales: `src/contenido/marcadores.ts` exporta `MARCADORES = { pre
 ## 3. Instalación en una web que cumple
 
 ```bash
-npm install github:Bellit/micms#v0.2.0
+npm install github:Bellit/micms#v0.3.0
 ```
 
 ```js
@@ -129,6 +129,7 @@ Si `wrangler.jsonc` tiene `assets` con `run_worker_first`, incluye la ruta del g
 ## 4. Comprobación final
 
 1. `npm run build` termina sin errores y escribe `_micms/version.json`.
-2. Al abrir `/admin/contenido` sale la pantalla para entrar. Con la clave, el panel muestra una pestaña por JSON.
-3. Al cambiar un texto y pulsar «Publicar», aparece en GitHub un commit «Contenido: …». A los uno o dos minutos, el panel dice «¡Publicado!» y la web muestra el cambio.
-4. Si se escribe un texto más largo que el máximo, el panel lo marca y no publica.
+2. En el panel, la pestaña **«Instalación»** no muestra nada en rojo. Si algo falla, dice qué y cómo arreglarlo.
+3. Al abrir `/admin/contenido` sale la pantalla para entrar. Con la clave, el panel muestra una pestaña por JSON.
+4. Al cambiar un texto y pulsar «Publicar», aparece en GitHub un commit «Contenido: …». A los uno o dos minutos, el panel dice «¡Publicado!» y la web muestra el cambio.
+5. Si se escribe un texto más largo que el máximo, el panel lo marca y no publica.

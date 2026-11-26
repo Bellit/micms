@@ -72,6 +72,16 @@ try {
   ok(r.status === 200 && r.headers.get('content-type') === 'image/jpeg', 'imagen: sirve la foto del repositorio');
   ok((await f(`${API('imagen')}?archivo=../../secreto&ref=${E.commit}`, { headers: cookie })).status === 400, 'imagen: no deja salir de la carpeta');
 
+  // Pestaña «Instalación».
+  ok((await f(API('diagnostico'))).status === 401, 'diagnóstico: sin sesión, 401');
+  const diagnosticar = async () => (await f(API('diagnostico'), { headers: cookie })).json();
+  let D = await diagnosticar();
+  const nivel = (titulo) => D.comprobaciones.find((c) => c.titulo === titulo)?.nivel;
+  ok(D.comprobaciones.every((c) => c.nivel !== 'error') && nivel('portada.json') === 'ok' && nivel('Fotos') === 'ok', 'diagnóstico: todo correcto sin errores');
+  ok(D.commit === E.commit && D.ajustes.base === '/mi-web' && D.ajustes.ruta === '/admin/contenido' && D.ajustes.version, 'diagnóstico: commit y configuración');
+  ok(nivel('API de GitHub') === 'aviso', 'diagnóstico: avisa de que GITHUB_API es solo para pruebas');
+  ok(!JSON.stringify(D).includes(gh.token) && !JSON.stringify(D).includes(CLAVE), 'diagnóstico: no muestra el token ni la clave');
+
   const publicar = (cuerpo) => f(API('publicar'), { method: 'POST', headers: { ...cookie, 'Content-Type': 'application/json', Origin: U }, body: JSON.stringify(cuerpo) });
   const datos = structuredClone(E.ficheros['portada.json'].datos);
 
@@ -95,6 +105,13 @@ try {
   });
   ok(r.status === 200 && gh.existe(`${C}/imagenes/dos.jpg`) && !gh.existe(`${C}/imagenes/uno.jpg`), 'foto nueva: se sube y la que deja de usarse se retira');
 
+  // Alguien sube a mano un JSON que no cumple: el diagnóstico lo encuentra y dice qué campo es.
+  gh.publicarAparte(`${C}/portada.json`, JSON.stringify({ ...datos, titulo: '', foto: { archivo: 'no-existe.jpg', alt: 'x' } }));
+  D = await diagnosticar();
+  const p1 = D.comprobaciones.find((c) => c.titulo === 'portada.json');
+  ok(p1?.nivel === 'error' && p1.detalle.includes('titulo'), `diagnóstico: JSON que no cumple → «${p1?.detalle}»`);
+  ok(D.comprobaciones.find((c) => c.titulo === 'Fotos')?.detalle.includes('no-existe.jpg'), 'diagnóstico: foto que falta');
+
   r = await f(API('salir'), { method: 'POST', headers: { ...cookie, Origin: U, 'Content-Type': 'application/x-www-form-urlencoded' }, body: '' });
   ok(r.status === 303 && /micms_sesion=;|Max-Age=0|Expires=Thu, 01 Jan 1970/i.test(r.headers.get('set-cookie') ?? ''), 'salir: borra la cookie');
 } finally {
@@ -109,6 +126,20 @@ try {
   ok((await fetch(`${s2.url}/mi-web/admin/contenido/api/estado/`)).status === 401, 'sin MICMS_CLAVE: la API no responde');
 } finally {
   s2.p.kill();
+}
+
+// Sin los secretos de GitHub: el contenido no carga, pero el diagnóstico dice qué falta.
+const s3 = await servidor(4393, { MICMS_CLAVE: CLAVE });
+try {
+  const base = `${s3.url}/mi-web/admin/contenido/api`;
+  const r = await fetch(`${base}/entrar/`, { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: s3.url }, body: new URLSearchParams({ clave: CLAVE }) });
+  const cookie = { Cookie: (r.headers.get('set-cookie') ?? '').split(';')[0] };
+  ok((await fetch(`${base}/estado/`, { headers: cookie })).status === 503, 'sin GitHub: el contenido no carga (503)');
+  const D = await (await fetch(`${base}/diagnostico/`, { headers: cookie })).json();
+  const titulos = D.comprobaciones.filter((c) => c.nivel === 'error').map((c) => c.titulo);
+  ok(titulos.includes('Token de GitHub') && titulos.includes('Repositorio'), `sin GitHub: el diagnóstico lo dice (${titulos.join(', ')})`);
+} finally {
+  s3.p.kill();
   await gh.cerrar();
 }
 

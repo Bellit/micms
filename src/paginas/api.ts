@@ -1,6 +1,7 @@
 // API del gestor (se ejecuta en el servidor, nunca se genera en estático):
 //   GET  …/api/estado                      contenido actual, esquemas y fotos
 //   GET  …/api/imagen?archivo=x.jpg&ref=…  una foto del repositorio, para verla en el panel
+//   GET  …/api/diagnostico                 estado de la instalación (secretos, GitHub, contenido), sin valores secretos
 //   POST …/api/publicar                    valida y guarda los cambios en GitHub (JSON)
 //   POST …/api/entrar · …/api/salir        login propio (solo con `acceso: 'propio'`; formulario)
 // Todo menos «entrar» exige sesión (o, con `acceso: 'web'`, el login de la web).
@@ -9,6 +10,7 @@ import { OPCIONES } from 'virtual:micms/config';
 import { NOMBRE_FOTO, TIPO_FOTO } from '../comun/esquema';
 import { rutaCookie, urlPanel } from '../comun/rutas';
 import { estado, publicar } from '../servidor/contenido';
+import { diagnostico } from '../servidor/diagnostico';
 import { configurado, ErrorGitHub, leerCrudo } from '../servidor/github';
 import { abrirSesion, autorizado, cerrarSesion, claveCorrecta, claveConfigurada } from '../servidor/sesion';
 
@@ -35,6 +37,14 @@ const volver = (error?: string) =>
 
 export const GET: APIRoute = async ({ params, url, cookies }) => {
   if (!(await autorizado(cookies))) return errorJson(SIN_SESION, 401);
+  // El diagnóstico funciona aunque falte GitHub: precisamente sirve para ver qué falta.
+  if (params.accion === 'diagnostico') {
+    try {
+      return json(await diagnostico());
+    } catch (e) {
+      return fallo(e);
+    }
+  }
   if (!configurado()) return errorJson(NO_CONFIGURADO, 503);
   try {
     if (params.accion === 'estado') return json(await estado());

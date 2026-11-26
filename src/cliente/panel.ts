@@ -3,7 +3,9 @@
 //   número · sí/no · foto (con recorte) · uniones «T | null» y «texto | ''».
 // Nada se guarda hasta «Publicar», que manda todo junto al servidor (un solo commit en GitHub).
 import { normalizar, tipoDe, vacio, type Esquema, type Ruta } from '../comun/esquema';
+import { h, type Hijo } from './dom';
 import { prepararFoto, proporcionLegible, type Foto } from './fotos';
+import { pintarInstalacion } from './instalacion';
 
 type Fichero = { esquema: Esquema; datos: Record<string, unknown> };
 type Estado = { commit: string; ficheros: Record<string, Fichero>; imagenes: string[]; marcadores: Record<string, string>; sitio: string | null };
@@ -11,21 +13,6 @@ type ErrorCampo = { fichero?: string; ruta?: Ruta; mensaje: string };
 type Datos = Record<string | number, unknown>;
 
 // ── Utilidades ──────────────────────────────────────────────────────────────────────────────────
-
-type Hijo = Node | string | null | undefined | false;
-/** Crea un elemento: h('p', { class: 'x', onclick: … }, 'texto', otroNodo). */
-function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, unknown> = {}, ...hijos: Hijo[]) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v === undefined || v === null || v === false) continue;
-    if (k.startsWith('on')) el.addEventListener(k.slice(2), v as EventListener);
-    else if (k === 'class') el.className = String(v);
-    else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
-    else el.setAttribute(k, v === true ? '' : String(v));
-  }
-  for (const c of hijos) if (c !== null && c !== undefined && c !== false) el.append(c);
-  return el;
-}
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 /** Vista previa de un titular: *subrayado* y [píldora]. */
@@ -38,6 +25,8 @@ const humano = (k: string) => k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./
 const clave = (f: string, ruta: Ruta) => `${f}:${ruta.join('.')}`;
 let idSiguiente = 0;
 const nuevoId = () => `micms-${++idSiguiente}`;
+/** Pestaña «Instalación» (no puede chocar con un fichero: lleva «:»). */
+const INSTALACION = 'micms:instalacion';
 
 function obtener(obj: unknown, ruta: Ruta): unknown {
   return ruta.reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Datos)[k] : undefined), obj);
@@ -92,19 +81,34 @@ export async function iniciar(raiz: HTMLElement) {
     original = Object.fromEntries(Object.entries(E.ficheros).map(([f, x]) => [f, JSON.stringify(x.datos)]));
     subidas.clear();
     errores = [];
-    if (!pestana || !E.ficheros[pestana]) pestana = Object.keys(E.ficheros)[0];
+    if (!pestana || (pestana !== INSTALACION && !E.ficheros[pestana])) pestana = Object.keys(E.ficheros)[0];
     pintar();
   }
 
   function fatal(texto: string) {
-    raiz.replaceChildren(h('p', { class: 'micms-aviso err', role: 'alert' }, texto), h('button', { class: 'micms-btn', type: 'button', onclick: cargar }, 'Reintentar'));
+    raiz.replaceChildren(
+      h('p', { class: 'micms-aviso err', role: 'alert' }, texto),
+      h(
+        'div',
+        { class: 'micms-fila-botones' },
+        h('button', { class: 'micms-btn', type: 'button', onclick: cargar }, 'Reintentar'),
+        h('button', { class: 'micms-btn', type: 'button', onclick: () => instalacionSola() }, 'Comprobar la instalación'),
+      ),
+    );
+  }
+
+  /** Solo la pestaña «Instalación», cuando el contenido no carga. */
+  function instalacionSola() {
+    const cont = h('div', { class: 'micms-ficha' });
+    raiz.replaceChildren(h('div', { class: 'micms-cabecera' }, h('h1', {}, 'Instalación del gestor')), cont, h('button', { class: 'micms-btn', type: 'button', onclick: cargar }, 'Volver al contenido'));
+    pintarInstalacion(cont, { api, urlVersion });
   }
 
   // ── Pintado ──
 
   function pintar() {
     previsualizaciones.length = 0;
-    const fichero = E.ficheros[pestana];
+    const enInstalacion = pestana === INSTALACION;
     const pestanas = h(
       'div',
       { class: 'micms-pestanas', role: 'tablist' },
@@ -117,7 +121,17 @@ export async function iniciar(raiz: HTMLElement) {
           nErr ? h('span', { class: 'micms-num' }, String(nErr)) : null,
         );
       }),
+      h('button', { type: 'button', role: 'tab', class: 'micms-pestana-sistema', 'aria-selected': String(enInstalacion), onclick: () => ((pestana = INSTALACION), pintar()) }, 'Instalación'),
     );
+
+    let ficha: HTMLElement;
+    if (enInstalacion) {
+      ficha = h('div', { class: 'micms-ficha', role: 'tabpanel' });
+      pintarInstalacion(ficha, { api, urlVersion });
+    } else {
+      const fichero = E.ficheros[pestana];
+      ficha = h('div', { class: 'micms-ficha', role: 'tabpanel' }, fichero.esquema.google ? vistaGoogle(pestana) : null, ...secciones(pestana));
+    }
 
     const generales = errores.filter((e) => !e.ruta?.length);
     const partes: Hijo[] = [
@@ -125,7 +139,7 @@ export async function iniciar(raiz: HTMLElement) {
       aviso && h('p', { class: `micms-aviso ${aviso.tipo}`, role: aviso.tipo === 'err' ? 'alert' : 'status' }, aviso.texto, aviso.enlace ? h('a', { href: urlWeb, target: '_blank', rel: 'noopener' }, ' Ver la web') : null),
       ...generales.map((e) => h('p', { class: 'micms-aviso err', role: 'alert' }, e.fichero ? `${e.fichero}: ${e.mensaje}` : e.mensaje)),
       pestanas,
-      h('div', { class: 'micms-ficha', role: 'tabpanel' }, fichero.esquema.google ? vistaGoogle(pestana) : null, ...secciones(pestana)),
+      ficha,
       barra(),
     ];
     raiz.replaceChildren(...partes.filter((x): x is Node | string => Boolean(x)));

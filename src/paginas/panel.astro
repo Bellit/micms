@@ -177,4 +177,28 @@ const api = urlApi(OPCIONES, 'ACCION');
   .micms-entrar input:focus-visible { outline: 3px solid var(--m-tinta); outline-offset: 2px; }
   .micms-salir { display: flex; justify-content: flex-end; }
   .micms-salir .micms-btn { margin-top: 0; }
+
+  /* Pestaña «Instalación» */
+  .micms-pestanas .micms-pestana-sistema { margin-left: auto; border-style: dashed; }
+  .micms-pestanas .micms-pestana-sistema[aria-selected='true'] { border-style: solid; }
+  .micms-bloque { padding-bottom: 16px; }
+  .micms-bloque h2 { margin: 14px 16px 4px; font-size: 1.1rem; }
+  .micms-comprobaciones { list-style: none; padding: 0; margin: 8px 0 0; }
+  .micms-comprobaciones li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--m-linea); line-height: 1.45; overflow-wrap: anywhere; }
+  .micms-simbolo {
+    flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 999px;
+    font-size: 0.8rem; font-weight: 700; color: #fff; background: var(--m-tinta-2);
+  }
+  .micms-nivel.ok .micms-simbolo { background: var(--m-ok); }
+  .micms-nivel.error .micms-simbolo { background: var(--m-error); }
+  .micms-nivel.aviso .micms-simbolo { background: #8a5300; }
+  .micms-oculto-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .micms-ajustes { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 8px 0 0; }
+  .micms-ajustes dt { font-weight: 600; }
+  .micms-ajustes dd { margin: 0; overflow-wrap: anywhere; }
+  @media (max-width: 520px) { .micms-ajustes { grid-template-columns: 1fr; gap: 0; } .micms-ajustes dd { margin-bottom: 8px; } }
+  .micms-puntos { padding-left: 20px; line-height: 1.6; }
+  .micms textarea.micms-prompt { overflow: auto; resize: vertical; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.82rem; line-height: 1.45; }
+  .micms-fila-botones { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .micms-fila-botones .micms-btn { margin-top: 0; }
 </style>

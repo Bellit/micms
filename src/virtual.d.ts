@@ -22,3 +22,8 @@ declare module 'virtual:micms/layout' {
 declare module 'astro:env/server' {
   export function getSecret(key: string): string | undefined;
 }
+
+declare module '*.md?raw' {
+  const texto: string;
+  export default texto;
+}
