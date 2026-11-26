@@ -1,0 +1,9 @@
+{
+  "titulo": "Hola",
+  "texto": "Una web mínima para probar micms.",
+  "estado": "abierto",
+  "foto": {
+    "archivo": "uno.jpg",
+    "alt": "Degradado verde y negro"
+  }
+}

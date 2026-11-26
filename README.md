@@ -1,25 +1,25 @@
 # micms
 
-Gestor de contenido para webs Astro. Desde el panel de la web, el cliente cambia **textos, fotos y SEO**, sin tocar el diseño. Al pulsar «Publicar», los cambios se guardan en el repositorio de GitHub de la web y Cloudflare vuelve a compilarla y publicarla.
+Gestor de contenido para webs Astro. Desde un panel, el cliente cambia **textos, fotos y SEO**, sin tocar el diseño. Al pulsar «Publicar», los cambios se guardan en el repositorio de GitHub de la web y el alojamiento (Cloudflare, Netlify, Vercel…) vuelve a compilarla y publicarla.
 
 - La web sigue siendo **estática**: no hay base de datos para el contenido.
 - Los formularios se **generan solos** a partir de los esquemas Zod de la web (`src/contenido/esquemas.ts`): etiquetas, ayudas, límites de caracteres, número de elementos de las listas, proporción y tamaño mínimo de las fotos.
-- **Nada se rompe:** se valida en el navegador, en el Worker antes de guardar y otra vez en `astro build`. Si algo no cumple, no se publica.
+- **Nada se rompe:** se valida en el navegador, en el servidor antes de guardar y otra vez en `astro build`. Si algo no cumple, no se publica.
 - **Nada se pisa:** cada publicación es un commit encima del que se abrió. Si alguien ha publicado entretanto, se avisa y no se guarda.
-- El cliente **no necesita cuenta de GitHub**: el Worker usa un token guardado como secreto.
+- El cliente **no necesita cuenta de GitHub**: el servidor usa un token guardado como secreto.
+- Funciona con cualquier adaptador de Astro, con webs en una subcarpeta (`base`) y con barra final (`trailingSlash`).
 
 El plan completo, con las fases, está en [PLAN.md](PLAN.md).
 
 ## Qué necesita la web
 
-Seguir la convención de la guía (`GUIA-WEB.md` → «Contenido editable»). Ejemplo completo: la Plantilla Landing Reservas.
+**[COMPATIBILIDAD.md](COMPATIBILIDAD.md)**: la lista exacta de requisitos, los tipos de campo que se pueden editar y la comprobación final. En resumen:
 
-- `src/contenido/*.json`: el contenido. Ningún texto del cliente escrito en los `.astro`.
-- `src/contenido/esquemas.ts`: exporta `ESQUEMAS = { 'fichero.json': esquemaZod, … }`, con Zod de `astro/zod`.
-- `src/contenido/imagenes/`: las fotos. En el JSON va solo el nombre del fichero.
-- Opcional: `src/contenido/marcadores.ts`, que exporta `MARCADORES = { nombre: 'explicación' }` (los `{nombre}` que se sustituyen en los textos).
-- Un panel con login que proteja la ruta del gestor (por defecto `/admin/contenido`), y comprobación de origen en los POST. **micms no tiene login propio.**
-- Publicación en Cloudflare **conectada al repositorio** (Workers Builds), para que cada commit se publique solo.
+- Astro 7 o posterior, en un repositorio de GitHub que se publica solo al hacer commit.
+- Un adaptador de servidor (`@astrojs/cloudflare`, `node`, `netlify` o `vercel`). Con GitHub Pages no funciona.
+- Todo lo editable en `src/contenido/*.json`, con su esquema Zod en `src/contenido/esquemas.ts` (`export const ESQUEMAS`) y las fotos en `src/contenido/imagenes/`.
+
+¿La web no cumple? **[PROMPT-ADAPTAR.md](PROMPT-ADAPTAR.md)** es un prompt para que una IA la adapte sin cambiar cómo se ve. Web mínima de ejemplo: [`ejemplo/`](ejemplo/).
 
 ### Metadatos de los esquemas (`.meta()`)
 
@@ -37,20 +37,32 @@ Lo demás sale del propio esquema: `max` → contador y límite, `min`/`max` de 
 ## Instalación
 
 ```bash
-npm install github:Bellit/micms
+npm install github:Bellit/micms#v0.2.0
 ```
 
 ```js
 // astro.config.mjs
 import micms from 'micms';
 export default defineConfig({
-  integrations: [micms({ layout: 'src/layouts/Admin.astro' })],
+  adapter: cloudflare(),
+  integrations: [micms()],
 });
 ```
 
-Opciones: `layout` (plantilla del panel; recibe `title` y `actual="contenido"`), `carpeta` (`src/contenido`), `esquemas`, `marcadores` y `ruta` (`/admin/contenido`).
+| Opción | Por defecto | Qué es |
+|---|---|---|
+| `acceso` | `'propio'` | `'propio'`: micms pide su clave (`MICMS_CLAVE`). `'web'`: la ruta la protege el login de la web |
+| `layout` | página propia | Plantilla del panel de la web (recibe `title` y `actual="contenido"`) |
+| `ruta` | `/admin/contenido` | Dirección del gestor (sin la `base` de la web) |
+| `carpeta` | `src/contenido` | Carpeta de los JSON; las fotos, en `<carpeta>/imagenes` |
+| `esquemas` | `<carpeta>/esquemas.ts` | Módulo que exporta `ESQUEMAS` |
+| `marcadores` | `<carpeta>/marcadores.ts` si existe | Módulo que exporta `MARCADORES` |
 
-Añade la pestaña «Contenido» al menú del panel y, en `wrangler.jsonc`, que la ruta la ejecute el Worker (`run_worker_first` con `/admin/*`).
+Si la web ya tiene un panel con login (como la Plantilla Landing Reservas): `micms({ acceso: 'web', layout: 'src/layouts/Admin.astro' })`, la pestaña «Contenido» en el menú del panel y, en Cloudflare, `run_worker_first` con `/admin/*`.
+
+### Acceso (login propio)
+
+Con `acceso: 'propio'`, el gestor pide una clave: el secreto `MICMS_CLAVE` (mínimo 12 caracteres). La sesión es una cookie firmada (`HttpOnly`, `SameSite=Strict`, solo para la ruta del gestor) que dura 12 horas. Cambiar la clave cierra todas las sesiones. Cada intento fallido tarda 1 segundo. Sin `MICMS_CLAVE`, el gestor no se abre y dice qué falta.
 
 ### Conectar con GitHub
 
@@ -58,15 +70,13 @@ Añade la pestaña «Contenido» al menú del panel y, en `wrangler.jsonc`, que 
    - Repository access: **solo el repositorio de esa web**.
    - Permissions → Repository → **Contents: Read and write**. Nada más.
    - Caducidad: la más larga que permita tu cuenta, y apúntala para renovarlo.
-2. Guárdalo como secreto del Worker (nunca en el código ni en el chat):
-   ```bash
-   npx wrangler secret put GITHUB_TOKEN
-   npx wrangler secret put GITHUB_REPO     # usuario/repositorio
-   ```
-   Opcional: `GITHUB_RAMA` si no es `main`.
-3. Cloudflare → el Worker → Settings → **Builds** → conectar el repositorio. Build command: `npm run build`. Deploy command: `npx wrangler deploy`.
+2. Guarda los secretos (nunca en el código ni en el chat):
+   - **Cloudflare:** `npx wrangler secret put MICMS_CLAVE`, `… GITHUB_TOKEN` y `… GITHUB_REPO` (`usuario/repositorio`). En local, en `.dev.vars`.
+   - **Netlify, Vercel o Node:** como variables de entorno del servidor.
+   - Opcional: `GITHUB_RAMA` si no es `main`.
+3. Conecta la publicación al repositorio. En Cloudflare: el Worker → Settings → **Builds**, con build command `npm run build` y deploy command `npx wrangler deploy`.
 
-Para saber cuándo un cambio ya está en línea, la compilación escribe `/_micms/version.json` con el commit (`WORKERS_CI_COMMIT_SHA`). Si la web se compila a mano, el panel avisa de que los cambios se verán en la próxima publicación.
+Para saber cuándo un cambio ya está en línea, la compilación escribe `/_micms/version.json` con el commit. Lo toma de `WORKERS_CI_COMMIT_SHA` (Cloudflare Workers Builds), `CF_PAGES_COMMIT_SHA`, `COMMIT_REF` (Netlify), `VERCEL_GIT_COMMIT_SHA` o `GITHUB_SHA`. Si la web se compila a mano, el panel avisa de que los cambios se verán en la próxima publicación.
 
 ## Cómo funciona
 
@@ -76,6 +86,9 @@ Para saber cuándo un cambio ya está en línea, la compilación escribe `/_micm
 | `GET <ruta>/api/estado` | Último commit, esquemas en JSON (`z.toJSONSchema`), datos de cada fichero y fotos que hay |
 | `GET <ruta>/api/imagen?archivo=&ref=` | Una foto del repositorio, para verla en el panel |
 | `POST <ruta>/api/publicar` | `{ base, ficheros, fotos }` → valida y hace un solo commit (API de Git de GitHub: blobs, tree, commit y avance de la rama sin forzar) |
+| `POST <ruta>/api/entrar` · `salir` | Login propio (formulario; lo protege la comprobación de origen de Astro) |
+
+Todo menos «entrar» exige sesión. Las respuestas llevan `X-Robots-Tag: noindex` y no se guardan en caché.
 
 Al publicar:
 - Solo se guardan los ficheros que cambian.
@@ -83,9 +96,10 @@ Al publicar:
 - Las fotos que el contenido deja de usar se borran del repositorio. Las demás no se tocan.
 - Las fotos subidas se comprueban por sus primeros bytes y no pueden pasar de 5 MB cada una (20 MB por publicación).
 
-Zod y los esquemas se cargan desde la web mediante un módulo virtual (`virtual:micms/config`), así hay una sola copia de Zod y de Astro.
+Zod y los esquemas se cargan desde la web mediante un módulo virtual (`virtual:micms/config`), así hay una sola copia de Zod y de Astro. Los secretos se leen con `astro:env/server`, que funciona con cualquier adaptador.
 
 ## Pruebas
 
-- `npm test`: lectura de esquemas y GitHub falso.
+- `npm test`: lectura de esquemas.
+- `cd ejemplo && npm install && npm test`: compila la web de ejemplo (adaptador Node, `base` y barra final), arranca el servidor con un GitHub falso y prueba de extremo a extremo el login, la seguridad, la lectura, la validación, la publicación, los conflictos y las fotos (27 comprobaciones).
 - `micms/pruebas` exporta `githubFalso()`, un servidor que imita la API de GitHub que usa micms. La Plantilla lo usa en `tests/contenido.test.mjs` para probar el panel y la API con un Worker de verdad: acceso, lectura, publicar, validación, conflictos y fotos.

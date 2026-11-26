@@ -10,6 +10,8 @@ export type Esquema = {
   items?: Esquema;
   anyOf?: Esquema[];
   const?: unknown;
+  enum?: unknown[];
+  opciones?: Record<string, string>;
   minLength?: number;
   maxLength?: number;
   minItems?: number;
@@ -27,7 +29,7 @@ export type Esquema = {
 
 export type Ruta = (string | number)[];
 
-const META = ['etiqueta', 'ayuda', 'tipo', 'imagen', 'google'] as const;
+const META = ['etiqueta', 'ayuda', 'tipo', 'imagen', 'google', 'opciones'] as const;
 
 /** Copia los metadatos del padre que el hijo no tenga (Zod los deja en el nodo exterior de .nullable() y uniones). */
 const conMeta = (hijo: Esquema, padre: Esquema): Esquema => {

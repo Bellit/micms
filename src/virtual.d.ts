@@ -1,6 +1,13 @@
-// Tipos de los módulos virtuales que crea index.mjs y del entorno de Cloudflare.
+// Tipos de los módulos virtuales que crea index.mjs y de los módulos de Astro que usa micms.
 declare module 'virtual:micms/config' {
-  export const OPCIONES: { carpeta: string; ruta: string; sitio: string | null };
+  export const OPCIONES: {
+    carpeta: string;
+    ruta: string;
+    acceso: 'propio' | 'web';
+    sitio: string | null;
+    base: string;
+    barra: boolean;
+  };
   export const MARCADORES: Record<string, string>;
   export const FICHEROS: string[];
   export const ESQUEMAS_JSON: Record<string, Record<string, unknown>>;
@@ -12,6 +19,6 @@ declare module 'virtual:micms/layout' {
   export default Layout;
 }
 
-declare module 'cloudflare:workers' {
-  export const env: Record<string, unknown>;
+declare module 'astro:env/server' {
+  export function getSecret(key: string): string | undefined;
 }

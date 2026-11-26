@@ -1,11 +1,11 @@
 // Lectura y escritura del repositorio de la web con la API de GitHub.
-// Secretos del Worker (npx wrangler secret put …):
+// Secretos (en Cloudflare, `npx wrangler secret put …`; en otros servidores, variables de entorno):
 //   GITHUB_TOKEN  token de grano fino, solo para ese repositorio, con permiso «Contents: Read and write»
 //   GITHUB_REPO   «usuario/repositorio»
 // Variables opcionales: GITHUB_RAMA (por defecto main) y GITHUB_API (las pruebas usan un GitHub falso).
-import { env } from 'cloudflare:workers';
+import { secreto } from './entorno';
 
-const E = env as Record<string, string | undefined>;
+const E = new Proxy({} as Record<string, string | undefined>, { get: (_, k) => secreto(String(k)) });
 
 export const configurado = () => Boolean(E.GITHUB_TOKEN && E.GITHUB_REPO && /^[\w.-]+\/[\w.-]+$/.test(E.GITHUB_REPO));
 const rama = () => E.GITHUB_RAMA || 'main';

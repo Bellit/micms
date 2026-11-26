@@ -1,6 +1,6 @@
 {
   "name": "micms",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Gestor de contenido para webs Astro: textos, fotos y SEO desde el panel, guardados en GitHub.",
   "type": "module",
   "private": true,

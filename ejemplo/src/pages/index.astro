@@ -1,0 +1,26 @@
+---
+// Todo el texto y la foto salen de src/contenido/. Nada del cliente escrito aquí.
+import { Image } from 'astro:assets';
+import { Portada } from '../contenido/esquemas';
+import datos from '../contenido/portada.json';
+
+const portada = Portada.parse(datos); // si el contenido no cumple el esquema, la web no compila
+const fotos = import.meta.glob<{ default: ImageMetadata }>('../contenido/imagenes/*', { eager: true });
+const foto = fotos[`../contenido/imagenes/${portada.foto.archivo}`]?.default;
+const avisos = { abierto: null, vacaciones: 'Cerrado por vacaciones', reformas: 'Cerrado por reformas' };
+if (!foto) throw new Error(`Falta la foto ${portada.foto.archivo} en src/contenido/imagenes/`);
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{portada.titulo}</title>
+    <meta name="description" content={portada.texto} />
+  </head>
+  <body>
+    {avisos[portada.estado] && <p role="status">{avisos[portada.estado]}</p>}
+    <h1>{portada.titulo}</h1>
+    <p>{portada.texto}</p>
+    <Image src={foto} alt={portada.foto.alt} width={800} />
+  </body>
+</html>

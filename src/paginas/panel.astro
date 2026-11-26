@@ -1,16 +1,49 @@
 ---
 // Panel del gestor de contenido. Usa la plantilla del panel de la web (opción `layout` de la integración),
-// que recibe `title` y `actual="contenido"`. El formulario lo pinta src/cliente/panel.ts.
+// que recibe `title` y `actual="contenido"`, o la propia de micms. El formulario lo pinta src/cliente/panel.ts.
+// Con `acceso: 'propio'`, sin sesión muestra el formulario para entrar.
 import Layout from 'virtual:micms/layout';
 import { OPCIONES } from 'virtual:micms/config';
+import { urlApi, urlVersion, urlWeb } from '../comun/rutas';
+import { autorizado, claveConfigurada, MINIMO_CLAVE } from '../servidor/sesion';
 
 export const prerender = false;
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex');
+const propio = OPCIONES.acceso === 'propio';
+const sinClave = !claveConfigurada();
+const dentro = !sinClave && (await autorizado(Astro.cookies));
+const errorClave = Astro.url.searchParams.get('error') === 'clave';
+const api = urlApi(OPCIONES, 'ACCION');
 ---
 <Layout title="Contenido" actual="contenido">
-  <div id="micms" class="micms" data-api={`${OPCIONES.ruta}/api`}>
-    <p class="micms-cargando">Cargando el contenido…</p>
-    <noscript><p class="micms-aviso err">El gestor de contenido necesita JavaScript.</p></noscript>
-  </div>
+  {sinClave ? (
+    <div class="micms micms-entrar">
+      <h1>Gestor de contenido</h1>
+      <p class="micms-aviso err">El gestor aún no tiene clave. Guárdala en el secreto <code>MICMS_CLAVE</code> (mínimo {MINIMO_CLAVE} caracteres) y vuelve a cargar la página.</p>
+    </div>
+  ) : !dentro ? (
+    <form class="micms micms-entrar" method="post" action={urlApi(OPCIONES, 'entrar')}>
+      <h1>Gestor de contenido</h1>
+      {errorClave && <p class="micms-aviso err" role="alert">La clave no es correcta.</p>}
+      <label for="micms-clave">Clave</label>
+      <input id="micms-clave" name="clave" type="password" autocomplete="current-password" required autofocus />
+      <button class="micms-btn principal" type="submit">Entrar</button>
+    </form>
+  ) : (
+    <>
+      {propio && (
+        <form class="micms-salir" method="post" action={urlApi(OPCIONES, 'salir')}>
+          <button class="micms-btn" type="submit">Salir</button>
+        </form>
+      )}
+      <div id="micms" class="micms" data-api={api} data-version={urlVersion(OPCIONES)} data-web={urlWeb(OPCIONES)}>
+        <p class="micms-cargando">Cargando el contenido…</p>
+        <noscript><p class="micms-aviso err">El gestor de contenido necesita JavaScript.</p></noscript>
+      </div>
+    </>
+  )}
 </Layout>
 
 <script>
@@ -21,7 +54,7 @@ export const prerender = false;
 
 <style is:global>
   /* Colores de la web si los define (variables de la Plantilla) y, si no, neutros. */
-  .micms {
+  .micms, .micms-salir {
     --m-tinta: var(--tinta, #1d1d1f);
     --m-tinta-2: var(--tinta-2, #55555a);
     --m-fondo: var(--papel, #fff);
@@ -30,6 +63,8 @@ export const prerender = false;
     --m-acento: var(--acento, #cdeb6e);
     --m-error: var(--err, #b3261e);
     --m-ok: #1e6b3a;
+  }
+  .micms {
     padding-bottom: 96px;
     min-width: 0; /* dentro de una rejilla, que los resúmenes de una línea no ensanchen la página en el móvil */
   }
@@ -74,12 +109,12 @@ export const prerender = false;
   .micms-contador { font-size: 0.8rem; color: var(--m-tinta-2); font-variant-numeric: tabular-nums; }
   .micms-contador.lleno { color: var(--m-error); font-weight: 700; }
   .micms input[type='text'], .micms input[type='email'], .micms input[type='url'], .micms input[type='tel'],
-  .micms input[type='number'], .micms textarea {
+  .micms input[type='number'], .micms textarea, .micms select {
     width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px 12px; min-height: 44px;
     border: 1.5px solid var(--m-linea); border-radius: 8px; background: var(--m-fondo); color: var(--m-tinta); font: inherit;
   }
   .micms textarea { resize: vertical; line-height: 1.5; overflow: hidden; }
-  .micms input:focus-visible, .micms textarea:focus-visible, .micms button:focus-visible, .micms summary:focus-visible, .micms label.micms-btn:focus-within {
+  .micms input:focus-visible, .micms textarea:focus-visible, .micms select:focus-visible, .micms button:focus-visible, .micms summary:focus-visible, .micms label.micms-btn:focus-within {
     outline: 3px solid var(--m-tinta); outline-offset: 2px;
   }
   .micms-numero { max-width: 180px; }
@@ -132,4 +167,14 @@ export const prerender = false;
   }
   .micms-barra .micms-btn { margin-top: 0; }
   .micms-estado { margin: 0; font-weight: 600; }
+
+  .micms-entrar { max-width: 420px; padding-bottom: 0; }
+  .micms-entrar label { display: block; margin-top: 16px; font-weight: 600; }
+  .micms-entrar input[type='password'] {
+    width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px 12px; min-height: 44px;
+    border: 1.5px solid var(--m-linea); border-radius: 8px; background: var(--m-fondo); color: var(--m-tinta); font: inherit;
+  }
+  .micms-entrar input:focus-visible { outline: 3px solid var(--m-tinta); outline-offset: 2px; }
+  .micms-salir { display: flex; justify-content: flex-end; }
+  .micms-salir .micms-btn { margin-top: 0; }
 </style>

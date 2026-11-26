@@ -1,0 +1,15 @@
+{
+  "name": "micms-ejemplo",
+  "private": true,
+  "type": "module",
+  "description": "Web Astro mínima compatible con micms (adaptador Node, en subcarpeta y con barra final). Sirve de referencia y de prueba.",
+  "scripts": {
+    "build": "astro build",
+    "test": "node prueba.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.14",
+    "astro": "^7.4.13",
+    "micms": "file:.."
+  }
+}

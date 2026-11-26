@@ -52,7 +52,9 @@ function poner(obj: Datos, ruta: Ruta, valor: unknown) {
 // ── Panel ───────────────────────────────────────────────────────────────────────────────────────
 
 export async function iniciar(raiz: HTMLElement) {
-  const api = raiz.dataset.api!;
+  const api = (accion: string) => raiz.dataset.api!.replace('ACCION', accion); // ya incluye base y barra final de la web
+  const urlVersion = raiz.dataset.version!;
+  const urlWeb = raiz.dataset.web ?? '/';
   let E!: Estado;
   let original: Record<string, string> = {};
   const subidas = new Map<string, Foto>();
@@ -79,11 +81,11 @@ export async function iniciar(raiz: HTMLElement) {
     raiz.replaceChildren(h('p', { class: 'micms-cargando' }, 'Cargando el contenido…'));
     let r: Response;
     try {
-      r = await fetch(`${api}/estado`, { cache: 'no-store' });
+      r = await fetch(api('estado'), { cache: 'no-store' });
     } catch {
       return fatal('No hay conexión. Comprueba internet y recarga la página.');
     }
-    if (r.redirected || !r.headers.get('Content-Type')?.includes('json')) return location.reload(); // sesión caducada
+    if (r.status === 401 || r.redirected || !r.headers.get('Content-Type')?.includes('json')) return location.reload(); // sesión caducada
     const cuerpo = await r.json();
     if (!r.ok) return fatal(cuerpo.errores?.[0]?.mensaje ?? 'No se ha podido cargar el contenido.');
     E = cuerpo;
@@ -120,7 +122,7 @@ export async function iniciar(raiz: HTMLElement) {
     const generales = errores.filter((e) => !e.ruta?.length);
     const partes: Hijo[] = [
       h('div', { class: 'micms-cabecera' }, h('h1', {}, 'Contenido de la web'), ayuda()),
-      aviso && h('p', { class: `micms-aviso ${aviso.tipo}`, role: aviso.tipo === 'err' ? 'alert' : 'status' }, aviso.texto, aviso.enlace ? h('a', { href: '/', target: '_blank', rel: 'noopener' }, ' Ver la web') : null),
+      aviso && h('p', { class: `micms-aviso ${aviso.tipo}`, role: aviso.tipo === 'err' ? 'alert' : 'status' }, aviso.texto, aviso.enlace ? h('a', { href: urlWeb, target: '_blank', rel: 'noopener' }, ' Ver la web') : null),
       ...generales.map((e) => h('p', { class: 'micms-aviso err', role: 'alert' }, e.fichero ? `${e.fichero}: ${e.mensaje}` : e.mensaje)),
       pestanas,
       h('div', { class: 'micms-ficha', role: 'tabpanel' }, fichero.esquema.google ? vistaGoogle(pestana) : null, ...secciones(pestana)),
@@ -237,6 +239,7 @@ export async function iniciar(raiz: HTMLElement) {
       case 'integer':
         return numero(f, n, ruta);
       case 'string':
+        if (Array.isArray(n.enum)) return desplegable(f, n, ruta);
         return n.tipo === 'imagen' ? foto(f, n, ruta) : texto(f, n, ruta, opcional || Boolean((n as { vacioPermitido?: boolean }).vacioPermitido));
       default:
         return h('p', { class: 'micms-ayuda-campo' }, `«${etiquetaDe(n, ruta)}» no se puede editar desde aquí.`);
@@ -262,6 +265,23 @@ export async function iniciar(raiz: HTMLElement) {
       h('div', { class: 'micms-etiqueta' }, h('label', { for: id }, etiquetaDe(n, ruta)), extra ?? null),
       n.ayuda ? h('p', { class: 'micms-ayuda-campo', id: `${id}-ayuda` }, n.ayuda) : null,
     ];
+  }
+
+  /** z.enum([...]): una lista cerrada. `.meta({ opciones: { valor: 'Texto visible' } })` pone nombres legibles. */
+  function desplegable(f: string, n: Esquema, ruta: Ruta) {
+    const id = nuevoId();
+    const valor = String(obtener(datos(f), ruta) ?? '');
+    const nombres = (n.opciones ?? {}) as Record<string, string>;
+    const sel = h(
+      'select',
+      { id, class: 'micms-desplegable', 'aria-describedby': n.ayuda ? `${id}-ayuda` : undefined },
+      ...(n.enum as string[]).map((v) => h('option', { value: v, selected: v === valor }, nombres[v] ?? v)),
+    );
+    sel.addEventListener('change', () => {
+      poner(datos(f), ruta, sel.value);
+      cambio();
+    });
+    return h('div', { class: 'micms-campo', 'data-campo': clave(f, ruta) }, ...cabeceraCampo(n, ruta, id), sel, ...erroresDe(f, ruta));
   }
 
   function texto(f: string, n: Esquema, ruta: Ruta, opcional: boolean) {
@@ -458,7 +478,7 @@ export async function iniciar(raiz: HTMLElement) {
       }
       entrada.value = '';
     });
-    const src = subida?.url ?? (archivo && E.imagenes.includes(archivo) ? `${api}/imagen?archivo=${encodeURIComponent(archivo)}&ref=${E.commit}` : '');
+    const src = subida?.url ?? (archivo && E.imagenes.includes(archivo) ? `${api('imagen')}?archivo=${encodeURIComponent(archivo)}&ref=${E.commit}` : '');
     return h(
       'div',
       { class: 'micms-campo micms-foto', 'data-campo': clave(f, ruta) },
@@ -552,7 +572,7 @@ export async function iniciar(raiz: HTMLElement) {
     let r: Response;
     let cuerpo: { commit?: string | null; errores?: ErrorCampo[] } = {};
     try {
-      r = await fetch(`${api}/publicar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base: E.commit, ficheros, fotos }) });
+      r = await fetch(api('publicar'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base: E.commit, ficheros, fotos }) });
       cuerpo = await r.json().catch(() => ({}));
     } catch {
       publicando = false;
@@ -582,7 +602,7 @@ export async function iniciar(raiz: HTMLElement) {
   /** Consulta /_micms/version.json hasta que la web publicada tenga el commit nuevo. */
   async function versionPublicada(): Promise<string | null | undefined> {
     try {
-      const r = await fetch(`/_micms/version.json?t=${Date.now()}`, { cache: 'no-store' });
+      const r = await fetch(`${urlVersion}?t=${Date.now()}`, { cache: 'no-store' });
       return r.ok ? ((await r.json()).commit as string | null) : undefined;
     } catch {
       return undefined;
